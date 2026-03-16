@@ -45,3 +45,17 @@ class ConsumptionLog(db.Model):
 
     def __repr__(self):
         return f'<ConsumptionLog {self.id} for user {self.user_id}>'
+
+class MealInterval(db.Model):
+    __tablename__ = 'meal_intervals'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    name = db.Column(db.String(64), nullable=False)
+    start_time = db.Column(db.Time, nullable=False)
+    end_time = db.Column(db.Time, nullable=False)
+    target_hc = db.Column(db.Float, nullable=True) # Optional target for carbs
+
+    user = db.relationship('User', backref=db.backref('intervals', lazy='dynamic', cascade="all, delete-orphan"))
+
+    def __repr__(self):
+        return f'<MealInterval {self.name} ({self.start_time} - {self.end_time})>'

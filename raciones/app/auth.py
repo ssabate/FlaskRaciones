@@ -2,8 +2,8 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, login_required, current_user
 from urllib.parse import urlsplit
 from .extensions import db
-from .models import User
-
+from .models import User, MealInterval
+from datetime import time
 bp = Blueprint('auth', __name__)
 
 @bp.route('/login', methods=['GET', 'POST'])
@@ -47,6 +47,16 @@ def register():
         new_user = User(username=username, email=email)
         new_user.set_password(password)
         db.session.add(new_user)
+        db.session.flush() # Get new_user.id
+        
+        # Add default meal intervals
+        intervals = [
+            MealInterval(user_id=new_user.id, name='Desayuno', start_time=time(6, 0), end_time=time(11, 59)),
+            MealInterval(user_id=new_user.id, name='Almuerzo', start_time=time(12, 0), end_time=time(16, 59)),
+            MealInterval(user_id=new_user.id, name='Cena', start_time=time(19, 0), end_time=time(5, 59))
+        ]
+        db.session.add_all(intervals)
+        
         db.session.commit()
         flash('¡Felicidades, te has registrado correctamente!')
         return redirect(url_for('auth.login'))
