@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-12 mb-4">
+        <h2 class="display-5 text-center">Configuración de Comidas</h2>
+        <p class="text-center lead text-muted">Define tus intervalos de comida y los objetivos de hidratos de carbono para cada una.</p>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Listado de Intervalos -->
+    <div class="col-md-8 mb-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h4 class="card-title mb-0">Tus Intervalos Actuales</h4>
+            </div>
+            <div class="card-body p-0">
+                {% if intervals %}
+                    <ul class="list-group list-group-flush">
+                        {% for interval in intervals %}
+                            <li class="list-group-item p-4">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h5 class="mb-1">{{ interval.name }}</h5>
+                                        <p class="mb-1 text-muted">
+                                            <i class="bi bi-clock"></i> {{ interval.start_time.strftime('%H:%M') }} - {{ interval.end_time.strftime('%H:%M') }}
+                                        </p>
+                                        {% if interval.target_hc is not none %}
+                                            <span class="badge bg-info">Objetivo: {{ "%.1f"|format(interval.target_hc) }}g HC</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="btn-group">
+                                        <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editModal{{ interval.id }}">
+                                            Editar
+                                        </button>
+                                        <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal{{ interval.id }}">
+                                            Eliminar
+                                        </button>
+                                    </div>
+                                </div>
+                            </li>
+
+                            <!-- Modal para Editar -->
+                            <div class="modal fade" id="editModal{{ interval.id }}" tabindex="-1" aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <form method="POST" action="{{ url_for('main.edit_interval', interval_id=interval.id) }}">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Editar Intervalo</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Nombre (ej. Desayuno)</label>
+                                                    <input type="text" class="form-control" name="name" value="{{ interval.name }}" required>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="col-md-6 mb-3">
+                                                        <label class="form-label">Hora Inicio</label>
+                                                        <input type="time" class="form-control" name="start_time" value="{{ interval.start_time.strftime('%H:%M') }}" required>
+                                                    </div>
+                                                    <div class="col-md-6 mb-3">
+                                                        <label class="form-label">Hora Fin</label>
+                                                        <input type="time" class="form-control" name="end_time" value="{{ interval.end_time.strftime('%H:%M') }}" required>
+                                                    </div>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Objetivo Hidratos (g) <span class="text-muted">(Opcional)</span></label>
+                                                    <input type="number" step="0.1" class="form-control" name="target_hc" value="{{ interval.target_hc if interval.target_hc is not none else '' }}">
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                                <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Modal para Eliminar -->
+                            <div class="modal fade" id="deleteModal{{ interval.id }}" tabindex="-1" aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Eliminar Intervalo</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            ¿Estás seguro de que deseas eliminar el intervalo <strong>{{ interval.name }}</strong>?
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                            <form method="POST" action="{{ url_for('main.delete_interval', interval_id=interval.id) }}" class="d-inline">
+                                                <button type="submit" class="btn btn-danger">Eliminar</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <div class="p-5 text-center text-muted">
+                        No has configurado ningún intervalo de comida. ¡Añade uno para empezar!
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulario para Añadir Nuevo -->
+    <div class="col-md-4">
+        <div class="card shadow-sm border-success">
+            <div class="card-header bg-success text-white">
+                <h5 class="card-title mb-0">Nuevo Intervalo</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('main.add_interval') }}">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Nombre</label>
+                        <input type="text" class="form-control" name="name" placeholder="Ej. Merienda" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Hora Inicio</label>
+                        <input type="time" class="form-control" name="start_time" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Hora Fin</label>
+                        <input type="time" class="form-control" name="end_time" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Objetivo Hidratos (g)</label>
+                        <input type="number" step="0.1" class="form-control" name="target_hc" placeholder="Opcional">
+                    </div>
+                    <button type="submit" class="btn btn-success w-100 fw-bold">Añadir Intervalo</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
