@@ -1,11 +1,12 @@
 from app import create_app, db
 from app.models import Food
+from sqlalchemy import func
 
 def seed_db():
     app = create_app()
     with app.app_context():
         # Check if already seeded
-        if db.session.scalar(db.select(Food).limit(1)):
+        if db.session.scalar(db.select(Food.id).where(func.lower(Food.nombre) == "manzana").limit(1)):
             print("Database already seeded.")
             return
 
