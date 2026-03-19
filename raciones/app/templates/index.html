@@ -6,7 +6,7 @@
         <h1 class="display-4">Diario de Raciones</h1>
         {% if not current_user.is_authenticated %}
             <p class="lead">Lleva un control de tu consumo de hidratos de carbono fácilmente.</p>
-            <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg mt-3">Comenzar Ahora</a>
+            <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-lg mt-3">Comenzar Ahora</a>
         {% else %}
             <p class="lead">Hola, {{ current_user.username }}! Aquí está tu resumen de consumo de hoy.</p>
         {% endif %}

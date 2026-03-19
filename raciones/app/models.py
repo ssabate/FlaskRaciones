@@ -38,7 +38,7 @@ class ConsumptionLog(db.Model):
     food_id = db.Column(db.Integer, db.ForeignKey('foods.id'), nullable=False)
     cantidad_gramos = db.Column(db.Float, nullable=False)
     carbohidratos_calculados = db.Column(db.Float, nullable=False)
-    fecha_hora = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    fecha_hora = db.Column(db.DateTime, default=datetime.now, index=True)
 
     user = db.relationship('User', backref=db.backref('logs', lazy='dynamic'))
     food = db.relationship('Food')

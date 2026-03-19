@@ -18,7 +18,7 @@ def test_intervals():
             print(f"- {interval.name}: {interval.start_time} to {interval.end_time}")
             
         # Simulate index route logic
-        now = datetime.utcnow()
+        now = datetime.now()
         today = now.date()
         print(f"\nSimulating index route logic for today ({today}):")
         

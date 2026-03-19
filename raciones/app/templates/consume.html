@@ -66,6 +66,7 @@
     const rcGroup = document.getElementById('rcGroup');
     const gramsInput = document.getElementById('gramsInput');
     const rcInput = document.getElementById('rcInput');
+    const foodSelect = document.getElementById('foodSelect');
 
     function updateModeInputs() {
         const byGrams = modeGrams.checked;
@@ -78,6 +79,27 @@
     modeGrams.addEventListener('change', updateModeInputs);
     modeRc.addEventListener('change', updateModeInputs);
     updateModeInputs();
+
+    foodSelect.addEventListener('change', function () {
+        const foodId = this.value;
+        if (!foodId) return;
+
+        fetch(`/api/last_consumption/${foodId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.found) {
+                    gramsInput.value = data.cantidad_gramos;
+                    rcInput.value = data.cantidad_rc;
+                } else {
+                    gramsInput.value = 100;
+                    rcInput.value = 1;
+                }
+            })
+            .catch(() => {
+                gramsInput.value = 100;
+                rcInput.value = 1;
+            });
+    });
 </script>
 {% endblock %}
 

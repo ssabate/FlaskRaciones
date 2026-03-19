@@ -74,7 +74,7 @@ def _get_display_foods_for_user():
 @bp.route('/')
 def index():
     if current_user.is_authenticated:
-        now = datetime.utcnow()
+        now = datetime.now()
         intervals_data = []
         active_interval_id = None
         
@@ -178,7 +178,7 @@ def log_consumption():
         food_id=food.id,
         cantidad_gramos=cantidad_gramos,
         carbohidratos_calculados=carbos,
-        fecha_hora=datetime.utcnow()
+        fecha_hora=datetime.now()
     )
     db.session.add(log)
     db.session.commit()
@@ -375,6 +375,64 @@ def delete_interval(interval_id):
     db.session.commit()
     flash('Intervalo eliminado exitosamente.')
     return redirect(url_for('main.intervals'))
+
+
+@bp.route('/api/last_consumption/<int:food_id>')
+@login_required
+def api_last_consumption(food_id):
+    from flask import jsonify
+    now = datetime.now()
+    intervals = current_user.intervals.order_by(MealInterval.start_time).all()
+
+    # Determinar la ingesta actual
+    current_interval = None
+    for interval in intervals:
+        if _time_is_in_interval(interval, now.time()):
+            current_interval = interval
+            break
+
+    last_log = None
+
+    if current_interval:
+        # Buscar la última consumición en la misma franja horaria (últimos 60 días)
+        search_start = now - timedelta(days=60)
+        logs_same_food = (
+            current_user.logs
+            .filter(
+                ConsumptionLog.food_id == food_id,
+                ConsumptionLog.fecha_hora >= search_start,
+            )
+            .order_by(ConsumptionLog.fecha_hora.desc())
+            .all()
+        )
+        for log in logs_same_food:
+            log_interval = _get_interval_for_timestamp(intervals, log.fecha_hora)
+            if log_interval and log_interval.id == current_interval.id:
+                last_log = log
+                break
+
+    if not last_log:
+        # Fallback: cualquier consumición previa del alimento
+        last_log = (
+            current_user.logs
+            .filter(ConsumptionLog.food_id == food_id)
+            .order_by(ConsumptionLog.fecha_hora.desc())
+            .first()
+        )
+
+    if last_log:
+        rc_raw = last_log.carbohidratos_calculados / RC_GRAMS if RC_GRAMS > 0 else 0
+        # Redondear al 0.5 más cercano
+        rc_value = round(rc_raw * 2) / 2
+        if rc_value <= 0:
+            rc_value = 0.5
+        return jsonify({
+            'found': True,
+            'cantidad_gramos': round(last_log.cantidad_gramos, 1),
+            'cantidad_rc': rc_value,
+        })
+
+    return jsonify({'found': False, 'cantidad_gramos': 100.0, 'cantidad_rc': 1.0})
 
 
 @bp.route('/history')
