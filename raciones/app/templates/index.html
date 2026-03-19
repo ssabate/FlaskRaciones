@@ -18,79 +18,83 @@
     <div class="col-md-10 mx-auto">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h3 class="mb-0">Resumen de Hoy</h3>
-            <a href="{{ url_for('main.foods') }}" class="btn btn-success fw-bold">➕ Añadir Consumo</a>
+            <a href="{{ url_for('main.consume') }}" class="btn btn-success fw-bold">➕ Añadir Consumo</a>
         </div>
 
         {% if intervals_data %}
-            {% for data in intervals_data %}
-                <div class="card shadow-sm mb-4 {% if data.is_active %}border-primary{% endif %}">
-                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                        <h4 class="card-title mb-0">
-                            {{ data.interval.name }} 
-                            <small class="text-muted fs-6">({{ data.interval.start_time.strftime('%H:%M') }} - {{ data.interval.end_time.strftime('%H:%M') }})</small>
-                            {% if data.is_active %}
-                                <span class="badge bg-primary ms-2">Intervalo Actual</span>
-                            {% endif %}
-                        </h4>
-                        <div class="text-end">
-                            {% set text_color = 'text-success' %}
-                            {% if data.percentage >= 100 %}
-                                {% set text_color = 'text-danger' %}
-                            {% elif data.percentage >= 80 %}
-                                {% set text_color = 'text-warning' %}
-                            {% endif %}
-                            
-                            <strong class="{{ text_color }} fs-5">{{ "%.1f"|format(data.total_carbos) }}g HC consumidos</strong>
+            <div class="accordion" id="intervalsAccordion">
+                {% for data in intervals_data %}
+                    {% set is_open = data.interval.id == active_interval_id %}
+                    <div class="accordion-item mb-3 border {% if data.is_active %}border-primary{% endif %}">
+                        <h2 class="accordion-header" id="heading{{ data.interval.id }}">
+                            <button class="accordion-button {% if not is_open %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ data.interval.id }}" aria-expanded="{{ 'true' if is_open else 'false' }}" aria-controls="collapse{{ data.interval.id }}">
+                                <span class="me-2 fw-bold">{{ data.interval.name }}</span>
+                                <small class="text-muted me-3">({{ data.interval.start_time.strftime('%H:%M') }} - {{ data.interval.end_time.strftime('%H:%M') }})</small>
+                                {% if data.is_active %}
+                                    <span class="badge bg-primary me-3">Intervalo Actual</span>
+                                {% endif %}
+
+                                {% set text_color = 'text-success' %}
+                                {% if data.percentage >= 100 %}
+                                    {% set text_color = 'text-danger' %}
+                                {% elif data.percentage >= 80 %}
+                                    {% set text_color = 'text-warning' %}
+                                {% endif %}
+                                <strong class="{{ text_color }}">{{ "%.1f"|format(data.total_carbos) }}g HC</strong>
+                            </button>
+                        </h2>
+                        <div id="collapse{{ data.interval.id }}" class="accordion-collapse collapse {% if is_open %}show{% endif %}" aria-labelledby="heading{{ data.interval.id }}" data-bs-parent="#intervalsAccordion">
                             {% if data.target_hc is not none %}
-                                <br>
-                                <small class="text-muted">
-                                    Objetivo: {{ "%.1f"|format(data.target_hc) }}g 
-                                    {% if data.remaining_hc >= 0 %}
-                                        (<span class="{{ text_color }}">Faltan {{ "%.1f"|format(data.remaining_hc) }}g</span>)
-                                    {% else %}
-                                        (<span class="text-danger fw-bold">Sobrepasado por {{ "%.1f"|format(data.remaining_hc | abs) }}g</span>)
-                                    {% endif %}
-                                </small>
+                            <div class="progress" style="height: 4px; border-radius: 0;">
+                                {% set bg_color = 'bg-success' %}
+                                {% if data.percentage >= 100 %}
+                                    {% set bg_color = 'bg-danger' %}
+                                {% elif data.percentage >= 80 %}
+                                    {% set bg_color = 'bg-warning' %}
+                                {% endif %}
+                                <div class="progress-bar {{ bg_color }}" role="progressbar" style="width: {{ [data.percentage, 100]|min }}%;" aria-valuenow="{{ data.percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
                             {% endif %}
+
+                            <div class="accordion-body">
+                                {% if data.target_hc is not none %}
+                                    <p class="small text-muted">
+                                        Objetivo: {{ "%.1f"|format(data.target_hc) }}g.
+                                        {% if data.remaining_hc >= 0 %}
+                                            <span class="{{ text_color }}">Faltan {{ "%.1f"|format(data.remaining_hc) }}g.</span>
+                                        {% else %}
+                                            <span class="text-danger fw-bold">Sobrepasado por {{ "%.1f"|format(data.remaining_hc | abs) }}g.</span>
+                                        {% endif %}
+                                    </p>
+                                {% endif %}
+
+                                {% if data.grouped_logs %}
+                                    <table class="table table-hover mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th>Alimento</th>
+                                                <th>Cantidad Total (g)</th>
+                                                <th>Hidratos (g)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for log_data in data.grouped_logs %}
+                                            <tr>
+                                                <td>{{ log_data.food.nombre }}</td>
+                                                <td>{{ "%.1f"|format(log_data.cantidad_gramos) }}g</td>
+                                                <td><strong>{{ "%.1f"|format(log_data.carbohidratos) }}g</strong></td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                {% else %}
+                                    <p class="text-muted text-center mb-0 my-3">No hay consumos en este intervalo aun.</p>
+                                {% endif %}
+                            </div>
                         </div>
                     </div>
-                    {% if data.target_hc is not none %}
-                    <div class="progress" style="height: 4px; border-radius: 0;">
-                        {% set bg_color = 'bg-success' %}
-                        {% if data.percentage >= 100 %}
-                            {% set bg_color = 'bg-danger' %}
-                        {% elif data.percentage >= 80 %}
-                            {% set bg_color = 'bg-warning' %}
-                        {% endif %}
-                        <div class="progress-bar {{ bg_color }}" role="progressbar" style="width: {{ [data.percentage, 100]|min }}%;" aria-valuenow="{{ data.percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
-                    </div>
-                    {% endif %}
-                    <div class="card-body">
-                        {% if data.grouped_logs %}
-                            <table class="table table-hover mb-0">
-                                <thead>
-                                    <tr>
-                                        <th>Alimento</th>
-                                        <th>Cantidad Total (g)</th>
-                                        <th>Hidratos (g)</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for log_data in data.grouped_logs %}
-                                    <tr>
-                                        <td>{{ log_data.food.nombre }}</td>
-                                        <td>{{ log_data.cantidad_gramos }}g</td>
-                                        <td><strong>{{ "%.1f"|format(log_data.carbohidratos) }}g</strong></td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        {% else %}
-                            <p class="text-muted text-center mb-0 my-3">No hay consumos en este intervalo aún.</p>
-                        {% endif %}
-                    </div>
-                </div>
-            {% endfor %}
+                {% endfor %}
+            </div>
         {% else %}
             <div class="card shadow-sm">
                 <div class="card-body text-center my-4">

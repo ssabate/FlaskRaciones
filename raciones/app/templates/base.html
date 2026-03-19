@@ -16,7 +16,9 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     {% if current_user.is_authenticated %}
+                        <li class="nav-item"><a class="nav-link" href="{{ url_for('main.consume') }}">Consumos</a></li>
                         <li class="nav-item"><a class="nav-link" href="{{ url_for('main.foods') }}">Alimentos</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{{ url_for('main.history') }}">Historico</a></li>
                         <li class="nav-item"><a class="nav-link" href="{{ url_for('main.intervals') }}">Intervalos / Comidas</a></li>
                         <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.logout') }}">Cerrar Sesión</a></li>
                     {% else %}

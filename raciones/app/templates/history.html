@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h2>Historico de ingestas</h2>
+        <p class="text-muted mb-0">Filtra por fecha y periodo para revisar tus consumos.</p>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <form method="get" action="{{ url_for('main.history') }}">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label" for="fromDate">Desde</label>
+                    <input type="date" class="form-control" id="fromDate" name="from_date" value="{{ from_date }}" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="toDate">Hasta</label>
+                    <input type="date" class="form-control" id="toDate" name="to_date" value="{{ to_date }}" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="intervalFilter">Periodo de comida</label>
+                    <select class="form-select" id="intervalFilter" name="interval_id">
+                        <option value="">Todos</option>
+                        {% for interval in intervals %}
+                            <option value="{{ interval.id }}" {% if selected_interval_id == interval.id %}selected{% endif %}>
+                                {{ interval.name }} ({{ interval.start_time.strftime('%H:%M') }}-{{ interval.end_time.strftime('%H:%M') }})
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" for="viewFilter">Vista</label>
+                    <select class="form-select" id="viewFilter" name="view">
+                        <option value="consumption" {% if selected_view == 'consumption' %}selected{% endif %}>Por consumo</option>
+                        <option value="interval" {% if selected_view == 'interval' %}selected{% endif %}>Por ingesta</option>
+                    </select>
+                </div>
+                <div class="col-md-12 col-lg-12 d-grid d-md-block text-md-end">
+                    <button type="submit" class="btn btn-primary">Aplicar</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0">Resultados</h5>
+    {% if selected_view == 'consumption' %}
+        <span class="badge bg-info text-dark">{{ logs_data|length }} consumos - {{ "%.1f"|format(total_hc) }}g HC</span>
+    {% else %}
+        <span class="badge bg-info text-dark">{{ grouped_data|length }} ingestas - {{ logs_data|length }} consumos - {{ "%.1f"|format(total_hc) }}g HC</span>
+    {% endif %}
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        {% if selected_view == 'consumption' %}
+            {% if logs_data %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Fecha y hora</th>
+                                <th>Ingesta</th>
+                                <th>Alimento</th>
+                                <th>Gramos</th>
+                                <th>Hidratos</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in logs_data %}
+                            <tr>
+                                <td>{{ item.log.fecha_hora.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>
+                                    {% if item.interval %}
+                                        {{ item.interval.name }}
+                                        <div class="small text-muted">{{ item.service_date.strftime('%Y-%m-%d') }}</div>
+                                    {% else %}
+                                        <span class="text-muted">Sin periodo</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ item.log.food.nombre }}</td>
+                                <td>{{ "%.1f"|format(item.log.cantidad_gramos) }}g</td>
+                                <td><strong>{{ "%.1f"|format(item.log.carbohidratos_calculados) }}g</strong></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="text-muted text-center my-4">No hay consumos para los filtros seleccionados.</p>
+            {% endif %}
+        {% else %}
+            {% if grouped_data %}
+                <div class="accordion" id="historyAccordion">
+                    {% for group in grouped_data %}
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="historyHeading{{ loop.index }}">
+                            <button class="accordion-button {% if not loop.first %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#historyCollapse{{ loop.index }}" aria-expanded="{{ 'true' if loop.first else 'false' }}" aria-controls="historyCollapse{{ loop.index }}">
+                                <span class="me-3 fw-bold">
+                                    {% if group.interval %}
+                                        {{ group.interval.name }}
+                                    {% else %}
+                                        Sin periodo
+                                    {% endif %}
+                                </span>
+                                <span class="me-3 text-muted">{{ group.service_date.strftime('%Y-%m-%d') }}</span>
+                                <span class="badge rounded-pill text-bg-secondary me-2">{{ group.items_count }} consumos</span>
+                                <span class="badge rounded-pill text-bg-light me-3">{{ group.foods|length }} alimentos</span>
+                                <strong>{{ "%.1f"|format(group.total_hc) }}g HC</strong>
+                            </button>
+                        </h2>
+                        <div id="historyCollapse{{ loop.index }}" class="accordion-collapse collapse {% if loop.first %}show{% endif %}" aria-labelledby="historyHeading{{ loop.index }}" data-bs-parent="#historyAccordion">
+                            <div class="accordion-body">
+                                <div class="row mb-3">
+                                    <div class="col-md-4"><strong>Total gramos:</strong> {{ "%.1f"|format(group.total_grams) }}g</div>
+                                    <div class="col-md-4"><strong>Total HC:</strong> {{ "%.1f"|format(group.total_hc) }}g</div>
+                                    <div class="col-md-2"><strong>Consumos:</strong> {{ group.items_count }}</div>
+                                    <div class="col-md-2"><strong>Alimentos:</strong> {{ group.foods|length }}</div>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-hover mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th>Alimento</th>
+                                                <th>Gramos</th>
+                                                <th>Hidratos</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for food in group.foods %}
+                                            <tr>
+                                                <td>{{ food.food_name }}</td>
+                                                <td>{{ "%.1f"|format(food.grams) }}g</td>
+                                                <td><strong>{{ "%.1f"|format(food.hc) }}g</strong></td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-muted text-center my-4">No hay ingestas para los filtros seleccionados.</p>
+            {% endif %}
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
