@@ -67,6 +67,7 @@
     const gramsInput = document.getElementById('gramsInput');
     const rcInput = document.getElementById('rcInput');
     const foodSelect = document.getElementById('foodSelect');
+    const lastConsumptionUrlTemplate = "{{ url_for('main.api_last_consumption', food_id=0) }}";
 
     function updateModeInputs() {
         const byGrams = modeGrams.checked;
@@ -84,8 +85,18 @@
         const foodId = this.value;
         if (!foodId) return;
 
-        fetch(`/api/last_consumption/${foodId}`)
-            .then(response => response.json())
+        fetch(lastConsumptionUrlTemplate.replace(/0$/, foodId), {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+            .then(response => {
+                const contentType = response.headers.get('content-type') || '';
+                if (!response.ok || !contentType.includes('application/json')) {
+                    throw new Error(`Respuesta no válida (${response.status})`);
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.found) {
                     gramsInput.value = data.cantidad_gramos;
@@ -95,7 +106,8 @@
                     rcInput.value = 1;
                 }
             })
-            .catch(() => {
+            .catch(error => {
+                console.error('No se pudo recuperar el último consumo:', error);
                 gramsInput.value = 100;
                 rcInput.value = 1;
             });
