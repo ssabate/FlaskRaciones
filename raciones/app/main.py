@@ -71,6 +71,19 @@ def _get_display_foods_for_user():
     display_foods.sort(key=lambda food: food.nombre.lower())
     return display_foods
 
+
+def _get_food_family_ids_for_user(food):
+    """Return IDs that represent the same logical food for the current user."""
+    root_food_id = food.parent_id if food.parent_id is not None else food.id
+    return db.session.scalars(
+        db.select(Food.id).where(
+            and_(
+                or_(Food.id == root_food_id, Food.parent_id == root_food_id),
+                or_(Food.user_id == None, Food.user_id == current_user.id),
+            )
+        )
+    ).all()
+
 @bp.route('/')
 def index():
     if current_user.is_authenticated:
@@ -383,6 +396,12 @@ def api_last_consumption(food_id):
     from flask import jsonify
     now = datetime.now()
     intervals = current_user.intervals.order_by(MealInterval.start_time).all()
+    selected_food = db.session.get(Food, food_id)
+
+    if not selected_food or (selected_food.user_id is not None and selected_food.user_id != current_user.id):
+        return jsonify({'found': False, 'cantidad_gramos': 100.0, 'cantidad_rc': 1.0})
+
+    family_food_ids = _get_food_family_ids_for_user(selected_food)
 
     # Determinar la ingesta actual
     current_interval = None
@@ -399,7 +418,7 @@ def api_last_consumption(food_id):
         logs_same_food = (
             current_user.logs
             .filter(
-                ConsumptionLog.food_id == food_id,
+                ConsumptionLog.food_id.in_(family_food_ids),
                 ConsumptionLog.fecha_hora >= search_start,
             )
             .order_by(ConsumptionLog.fecha_hora.desc())
@@ -415,7 +434,7 @@ def api_last_consumption(food_id):
         # Fallback: cualquier consumición previa del alimento
         last_log = (
             current_user.logs
-            .filter(ConsumptionLog.food_id == food_id)
+            .filter(ConsumptionLog.food_id.in_(family_food_ids))
             .order_by(ConsumptionLog.fecha_hora.desc())
             .first()
         )
