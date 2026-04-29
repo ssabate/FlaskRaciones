@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, flash, redirect, url_for
+from flask import Blueprint, render_template, request, flash, redirect, url_for, Response, json
 from flask_login import login_required, current_user
 from sqlalchemy import and_, func, or_
 from .extensions import db
@@ -7,6 +7,30 @@ from datetime import datetime, timedelta, date, time
 
 bp = Blueprint('main', __name__)
 RC_GRAMS = 10.0
+
+
+@bp.route('/manifest.json')
+def manifest():
+    icon_url = url_for('static', filename='icon.svg', _external=True)
+    start_url = url_for('main.index', _external=False)
+    data = {
+        "name": "Raciones App",
+        "short_name": "Raciones",
+        "description": "Una aplicación web para el control de raciones de carbohidratos.",
+        "start_url": start_url,
+        "display": "standalone",
+        "background_color": "#ffffff",
+        "theme_color": "#0d6efd",
+        "icons": [
+            {
+                "src": icon_url,
+                "sizes": "any",
+                "type": "image/svg+xml",
+                "purpose": "any maskable"
+            }
+        ]
+    }
+    return Response(json.dumps(data), mimetype='application/manifest+json')
 
 
 def _interval_window_for_reference(now, interval):
