@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+    <!-- Background -->
+    <rect width="512" height="512" rx="112" fill="#0d6efd" />
+    
+    <!-- Icon representing food/carbs/ratios - A simple plate and cutlery or chart -->
+    <!-- Let's draw a white plate -->
+    <circle cx="256" cy="256" r="160" fill="none" stroke="#ffffff" stroke-width="32" />
+    <circle cx="256" cy="256" r="100" fill="#ffffff" />
+    
+    <!-- A small segment in the plate representing a 'ration' -->
+    <path d="M 256 156 A 100 100 0 0 1 356 256 L 256 256 Z" fill="#ffc107" />
+</svg>
